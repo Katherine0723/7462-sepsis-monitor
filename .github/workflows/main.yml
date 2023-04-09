@@ -43,13 +43,12 @@ jobs:
                any::tidyverse
                any::data.table
                any::googledrive
-               any::tictoc
 
       - name: Render document
         uses: quarto-dev/quarto-actions/render@v2
         with:
           to: gfm
-          path: README.qmd
+          path: A7_Q4.qmd
 
       - name: Setup git config
         run: |
