@@ -43,6 +43,7 @@ jobs:
                any::tidyverse
                any::data.table
                any::googledrive
+               any::tictoc
 
       - name: Render document
         uses: quarto-dev/quarto-actions/render@v2
