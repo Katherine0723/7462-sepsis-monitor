@@ -1,0 +1,133 @@
+---
+title: "A7"
+format: html
+editor: Katherine
+---
+
+## Q3
+
+```{r}
+#| echo: FALSE
+#| message: FALSE
+#| warning: FALSE
+
+library(tidyverse)
+library(data.table) ## For the fread function
+library(lubridate)
+
+source("sepsis_monitor_functions.R")
+library(tictoc)
+library(googledrive)
+```
+
+```{r}
+#| echo: FALSE
+#| message: FALSE
+#| warning: FALSE
+
+# ## Calling drive_deauth() prevents R from trying to authenticate via a browser
+drive_deauth()
+file_link <- "https://drive.google.com/file/d/1HhW3s_zLFCxxzBqVIPUO5-B60a4ac6r0/view?usp=share_link"
+# 
+## All data up until now
+new_data <- updateData(file_link)
+
+# new_data <- read.csv("sepsis_data.csv")
+
+## Include only most recent data
+most_recent_data <- new_data %>%
+  group_by(PatientID) %>%
+  filter(obsTime == max(obsTime))
+```
+
+## Date and Time `r Sys.time()`
+
+## A table listing the patients who currently have sepsis (if any), along with their most recent heart rate, temperature, and respiratory rate
+
+```{r}
+
+#| echo: FALSE
+#| message: FALSE
+#| warning: FALSE
+
+# A table listing the patients who currently have sepsis (if any)
+sepsis_patients <- most_recent_data %>%
+  filter(SepsisLabel == 1) %>%
+  select(PatientID, HR, Temp, Resp)
+
+sepsis_patients
+```
+
+## Plots for all patients who have sepsis (if any) that show the complete history of their heart rate, temperature, and respiratory rate during their time in the ICU.
+
+```{r}
+#| echo: FALSE
+#| message: FALSE
+#| warning: FALSE
+library(cowplot)
+sepsis_patients <- most_recent_data %>%
+  filter(SepsisLabel == 1) %>%
+  select(PatientID, HR, Temp, Resp)
+
+### "001118" "004939" "007540"
+###"007540" Temperature: NA
+
+sepsis_patients_ids <- unique(sepsis_patients$PatientID)
+patient_plots <- list()
+
+for (patient in sepsis_patients_ids) { 
+  patient_data <- new_data %>%
+    filter(PatientID == patient) %>%
+    select(ICULOS, HR, Temp, Resp)
+  
+  p1 <- ggplot(patient_data, aes(x = ICULOS, y = HR)) +
+    geom_line() +
+    ggtitle(paste0("Heart Rate for Patient ", patient)) +
+    theme_minimal() +
+    xlab("ICU Length of Stay (hours)") +
+    ylab("Heart Rate")
+  
+  p2 <- ggplot(patient_data, aes(x = ICULOS, y = Temp)) +
+    geom_line() +
+    ggtitle(paste0("Temperature for Patient ", patient)) +
+    theme_minimal() +
+    xlab("ICU Length of Stay (hours)") +
+    ylab("Temperature")
+  
+  p3 <- ggplot(patient_data, aes(x = ICULOS, y = Resp)) +
+    geom_line() +
+    ggtitle(paste0("Respiratory Rate for Patient ", patient)) +
+    theme_minimal() +
+    xlab("ICU Length of Stay (hours)") +
+    ylab("Respiratory Rate")
+  
+  patient_plots[[patient]] <- list(p1, p2, p3)
+}
+
+# Arrange plots in a grid
+plot_grid(plotlist = unlist(patient_plots, recursive = FALSE),
+          ncol = 3, labels = "AUTO", label_size = 12)
+
+```
+
+## A table showing the change in heart rate, temperature, and respiratory rate between the last two measurements for all patients
+
+```{r}
+#| echo: FALSE
+#| message: FALSE
+#| warning: FALSE
+change_data <- new_data %>%
+  group_by(PatientID) %>%
+  arrange(PatientID, ICULOS) %>%
+  slice_tail(n = 2) %>%
+  mutate(across(c(HR, Temp, Resp), list(change = ~ . - lag(.)))) %>%
+  filter(!is.na(HR_change) | !is.na(Temp_change) | !is.na(Resp_change)) %>%
+  select(PatientID, HR_change, Temp_change, Resp_change) %>%
+  pivot_longer(cols = c(HR_change, Temp_change, Resp_change), names_to = "variable", values_to = "change") %>%
+  mutate(change_direction = case_when(change > 0 ~ "increased",
+                                      change < 0 ~ "decreased",
+                                      TRUE ~ "same"))
+
+change_data
+
+```
