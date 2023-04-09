@@ -45,6 +45,7 @@ jobs:
                any::googledrive
                any::tictoc
                any::DT
+               any::cowplot
 
       - name: Render document
         uses: quarto-dev/quarto-actions/render@v2
