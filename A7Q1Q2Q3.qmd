@@ -1,0 +1,64 @@
+---
+title: "Assignment7"
+format: html
+editor: visual
+---
+
+## Task #1
+
+```{r}
+#| echo: FALSE
+#| message: FALSE
+#| warning: FALSE
+
+library(tidyverse)
+library(data.table) ## For the fread function
+library(lubridate)
+
+source("sepsis_monitor_functions.R")
+library(tictoc)
+```
+
+## Task#2
+
+```{r}
+#| echo: FALSE
+#| message: FALSE
+#| warning: FALSE
+
+# Test the makeSepsisDataset function with different values of n and read_fn
+sizes <- c(50, 100, 500)
+read_functions <- c("fread", "read_delim")
+
+for (n in sizes) {
+  for (read_fn in read_functions) {
+    cat("Dataset size:", n, "using", read_fn, "\n")
+    tic()
+    sepsis_data <- makeSepsisDataset(n = n, read_fn = read_fn)
+    toc()
+    cat("\n")
+  }
+}
+```
+
+## Task #3
+
+```{r}
+#| echo: FALSE
+#| eval: false
+#| message: FALSE
+#| warning: FALSE
+library(googledrive)
+
+df <- makeSepsisDataset()
+
+# We have to write the file to disk first, then upload it
+df %>% write_csv("sepsis_data_temp.csv")
+
+# Uploading happens here
+sepsis_file <- drive_put(media = "sepsis_data_temp.csv", 
+path = "https://drive.google.com/drive/folders/18v9UoX9Q9tgA0JiHpi4ZPjMN3RE4i1at?usp=sharing",name = "sepsis_data.csv")
+
+# Set the file permissions so anyone can download this file.
+sepsis_file %>% drive_share_anyone()
+```
